@@ -17,6 +17,7 @@ dependencies = [
     "yt-dlp (>=2025.10.22,<2026.0.0)",
     "boto3 (>=1.40.62,<2.0.0)",
     "pytest (>=8.4.2,<9.0.0)",
+    "types-requests (>=2.32.4.20250913,<3.0.0.0)",
 ]
 
 
@@ -24,3 +25,22 @@ dependencies = [
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 package-mode = false
+
+[tool.ruff]
+# 줄 길이 설정 (보통 88 또는 120 사용)
+line-length = 120
+
+[tool.ruff.lint]
+# 활성화할 규칙 모음
+# E: pycodestyle (에러)
+# F: Pyflakes (버그 위험)
+# I: isort (임포트 정렬)
+# W: pycodestyle (경고)
+select = ["E", "F", "I", "W"]
+
+# 무시할 규칙 (필요에 따라 추가)
+ignore = []
+
+[tool.ruff.format]
+# 따옴표 스타일 (더블 쿼트 권장)
+quote-style = "double"

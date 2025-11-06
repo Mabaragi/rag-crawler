@@ -11,3 +11,9 @@ class YoutubeChannel:
         self.channel_name = channel_name
         self.channel_handle = channel_handle
         self.channel_id = channel_id
+
+
+class YoutubeVideoRawData:
+    def __init__(self, channel_id: str, raw_data: dict):
+        self.channel_id = channel_id
+        self.raw_data = raw_data
