@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 # 환경 변수 로드 (예: MONGO_URI)
 load_dotenv()
-from application.services.channel_crawl_service import ChannelCrawlService
+from application.services.channel_insert_service import ChannelInsertService
 from infrastructure.persistence.mongo_channel_repository import MongoChannelRepository
 from infrastructure.api.youtube_api_client import YoutubeAPIClient
 
@@ -28,7 +28,7 @@ def run_crawl_command(channel_name: str, channel_handle: str):
     api_client = YoutubeAPIClient(api_key=api_key)
     # [B] 응용 서비스 객체 생성 및 의존성 주입 (DIP)
     # 서비스는 인터페이스(YoutubeChannelRepository)를 통해 구현체를 전달받습니다.
-    crawl_service = ChannelCrawlService(channel_repo=mongo_repo, api_client=api_client)
+    crawl_service = ChannelInsertService(channel_repo=mongo_repo, api_client=api_client)
 
     # [C] 서비스 메서드 실행
     print(f"\n🚀 크롤링을 시작합니다: {channel_name} ({channel_handle})")

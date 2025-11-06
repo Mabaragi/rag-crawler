@@ -6,7 +6,7 @@ from domain.repository.youtube_channel_repository import (
 from domain.adapter.youtube_api_adapter import YoutubeApiAdapter
 
 
-class ChannelCrawlService:
+class ChannelInsertService:
     # 생성자는 추상 타입(인터페이스)만 요구함
     def __init__(
         self, channel_repo: YoutubeChannelRepository, api_client: YoutubeApiAdapter
