@@ -1,0 +1,25 @@
+# Ignore local dev artifacts and caches
+.venv/
+__pycache__/
+*.pyc
+
+# VCS
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Python build artifacts
+build/
+dist/
+*.egg-info/
+
+# Docker
+Dockerfile*
+!.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db

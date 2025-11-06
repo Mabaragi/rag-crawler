@@ -1,0 +1,59 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging/build artifacts
+build/
+dist/
+.eggs/
+*.egg-info/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Test/coverage caches
+.pytest_cache/
+.coverage
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+htmlcov/
+
+# Type checking / linters
+.mypy_cache/
+.pytype/
+.pyre/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editor/IDE settings
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Environment files (keep secrets out of git)
+.env
+.env.*
+
+# OS-specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node (in case of incidental tooling)
+node_modules/
+
+
+# github copilot settings
+.github
