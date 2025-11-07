@@ -3,12 +3,11 @@ import os
 
 import dotenv
 from pymongo import MongoClient
-from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
 
-from domain.model.youtube import YoutubeChannel
-from domain.repository.youtube_channel_repository import YoutubeChannelRepository
+from domain.model.youtube import YoutubeChannel, YoutubeVideoRawData
+from domain.repository.youtube_repository import YoutubeRepository
 
 dotenv.load_dotenv()
 
@@ -18,9 +17,7 @@ class MongoBaseRepository:
 
     def __init__(self, db_name: str = "youtube_db"):
         # 환경 변수나 기본값으로 클라이언트 초기화
-        self._client: MongoClient = MongoClient(
-            os.getenv("MONGO_URI", "mongodb://localhost:27017")
-        )
+        self._client: MongoClient = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
         # 데이터베이스는 생성자에서 전달받은 이름으로 설정
         self._db: Database = self._client[db_name]
 
@@ -29,24 +26,21 @@ class MongoBaseRepository:
         return self._db
 
 
-class MongoChannelRepository(MongoBaseRepository, YoutubeChannelRepository):
+class MongoYoutubeRepository(YoutubeRepository):
     """
-    MongoDB를 사용한 채널 저장소 구현체입니다.
+    MongoDB를 사용한 유튜브 저장소 구현체입니다.
 
     """
 
-    def __init__(
-        self,
-        db_name: str = "youtube_db",
-    ):
-        super().__init__(db_name=db_name)
-        self._collection: Collection = self.get_db()["channels"]
+    def __init__(self, db_name: str = "youtube_db"):
+        # 환경 변수나 기본값으로 클라이언트 초기화
+        self._client: MongoClient = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
+        # 데이터베이스는 생성자에서 전달받은 이름으로 설정
+        self._db: Database = self._client[db_name]
 
-    def save(
-        self, channel: YoutubeChannel, channel_id: str, streamer_name: str
-    ) -> None:
+    def save_channel(self, channel: YoutubeChannel, channel_id: str, streamer_name: str) -> None:
         try:
-            self._collection.update_one(
+            self._db["channels"].update_one(
                 filter={"channel_id": channel_id},
                 update={
                     "$set": {
@@ -54,6 +48,7 @@ class MongoChannelRepository(MongoBaseRepository, YoutubeChannelRepository):
                         "channel_handle": channel.channel_handle,
                         "channel_id": channel_id,
                         "streamer_name": streamer_name,
+                        "initialized": channel.initialized,
                         "created_at": datetime.datetime.now(datetime.timezone.utc),
                     }
                 },
@@ -62,32 +57,45 @@ class MongoChannelRepository(MongoBaseRepository, YoutubeChannelRepository):
         except PyMongoError as e:
             print(f"Error saving channel to MongoDB: {e}")
 
-
-class MongoRawDataRepository(MongoBaseRepository):
-    """
-    MongoDB를 사용한 유튜브 원시 데이터 저장소 구현체입니다.
-    """
-
-    def __init__(
-        self,
-        db_name: str = "youtube_db",
-    ):
-        super().__init__(db_name=db_name)
-        self._collection: Collection = self.get_db()["raw_data"]
-
-    def bulk_save_raw_data(self, raw_data_list: list[dict]) -> None:
+    def update_channel(self, channel: YoutubeChannel) -> None:
         try:
-            self._collection.insert_many(raw_data_list)
+            self._db["channels"].update_one(
+                filter={"channel_id": channel.channel_id},
+                update={
+                    "$set": {
+                        "channel_name": channel.channel_name,
+                        "channel_handle": channel.channel_handle,
+                        "streamer_name": channel.streamer_name,
+                        "initialized": channel.initialized,
+                    }
+                },
+            )
+        except PyMongoError as e:
+            print(f"Error updating channel in MongoDB: {e}")
+
+    def get_channel_by_id(self, channel_id: str) -> YoutubeChannel | None:
+        try:
+            data = self._db["channels"].find_one(filter={"channel_id": channel_id})
+            if data:
+                return YoutubeChannel.from_dict(data)
+            return None
+        except PyMongoError as e:
+            print(f"Error retrieving channel from MongoDB: {e}")
+            return None
+
+    def bulk_save_raw_data(self, raw_data_list: list[YoutubeVideoRawData]) -> None:
+        try:
+            self._db["raw_data"].insert_many([data.__dict__ for data in raw_data_list])
         except PyMongoError as e:
             print(f"Error saving raw data to MongoDB: {e}")
 
-    def check_saved(self, raw_data_list: list[dict]) -> bool | None:
+    def check_saved(self, raw_data: YoutubeVideoRawData) -> bool | None:
         """
-        원시 데이터 리스트의 첫번째 요소로 저장 여부를 확인합니다.
+        원시 데이터의 저장 여부를 확인합니다.
         """
-        video_id = raw_data_list[0].get("video_id")
+        video_id = raw_data.video_id
         try:
-            existing = self._collection.find_one({"video_id": video_id})
+            existing = self._db["raw_data"].find_one({"video_id": video_id})
             return existing is not None
         except PyMongoError as e:
             print(f"Error checking raw data in MongoDB: {e}")

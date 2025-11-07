@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 
 class YoutubeApiAdapter(ABC):
-
     @abstractmethod
     def fetch_channel_id(self, handle: str):
         pass
@@ -14,5 +13,5 @@ class YoutubeApiAdapter(ABC):
         page_token: str | None = None,
         published_after: str | None = None,
         published_before: str | None = None,
-    ):
+    ) -> dict | None:
         pass
