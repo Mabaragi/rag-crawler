@@ -38,7 +38,7 @@ def run_channel_insert_command(channel_name: str, channel_handle: str, streamer_
     # [C] 서비스 메서드 실행
     print(f"\n🚀 크롤링을 시작합니다: {channel_name} ({channel_handle})")
     try:
-        crawl_service.start_crawl(
+        crawl_service.insert_channel(
             channel_name=channel_name,
             channel_handle=channel_handle,
             streamer_name=streamer_name,

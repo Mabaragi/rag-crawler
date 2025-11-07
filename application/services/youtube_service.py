@@ -14,7 +14,7 @@ class ChannelInsertService:
         self.channel_repo = channel_repo
         self.api_client = api_client
 
-    def start_crawl(self, channel_name: str, channel_handle: str, streamer_name: str) -> None:
+    def insert_channel(self, channel_name: str, channel_handle: str, streamer_name: str) -> None:
         """
         채널 정보를 크롤링하고 저장하는 메서드
         """
