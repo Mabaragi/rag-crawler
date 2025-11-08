@@ -1,11 +1,14 @@
 # application/services/crawl_service.py (응용 서비스 계층)
 import datetime
 
+from application.exceptions import APIKeyServiceError
 from domain.adapter.youtube_api_adapter import YoutubeApiAdapter
-from domain.model.youtube import YoutubeChannel, YoutubeVideoRawData
+from domain.model.youtube import APIKey, YoutubeChannel, YoutubeVideoRawData
 from domain.repository.youtube_repository import (
+    APIKeyRepository,
     YoutubeRepository,
 )  # 인터페이스만 임포트
+from shared.utils import is_quota_reseted
 
 
 class ChannelInsertService:
@@ -14,7 +17,7 @@ class ChannelInsertService:
         self.channel_repo = channel_repo
         self.api_client = api_client
 
-    def insert_channel(self, channel_name: str, channel_handle: str, streamer_name: str) -> None:
+    async def insert_channel(self, channel_name: str, channel_handle: str, streamer_name: str) -> None:
         """
         채널 정보를 크롤링하고 저장하는 메서드
         """
@@ -26,9 +29,10 @@ class ChannelInsertService:
             channel_name=channel_name,
             channel_handle=channel_handle,
             channel_id=channel_id,
+            streamer_name=streamer_name,
         )
         # 2. 로직 수행 및 저장 요청 (인터페이스 메서드 사용)
-        self.channel_repo.save_channel(channel=channel, channel_id=channel_id, streamer_name=streamer_name)
+        await self.channel_repo.save_channel(channel=channel)
 
 
 class RawDataCrawlService:
@@ -36,7 +40,7 @@ class RawDataCrawlService:
         self.youtube_repo = youtube_repo
         self.api_client = api_client
 
-    def crawl_and_save_raw_data(self, youtube_channel: YoutubeChannel) -> None:
+    async def crawl_and_save_raw_data(self, youtube_channel: YoutubeChannel) -> None:
         """
         유튜브 원시 데이터를 크롤링하고 저장하는 메서드
         """
@@ -73,11 +77,60 @@ class RawDataCrawlService:
                 count += len(youtube_raw_data_list)
                 print(f"크롤링한 원시 데이터 수: {count}, 페이지 토큰: {page_token}")
                 # 2. 로직 수행 및 저장 요청 (인터페이스 메서드 사용)
-                self.youtube_repo.bulk_save_raw_data(raw_data_list=youtube_raw_data_list)
+                await self.youtube_repo.bulk_save_raw_data(raw_data_list=youtube_raw_data_list)
                 page_token = response.get("nextPageToken")
                 if not page_token:
                     print("더 이상 크롤링할 페이지가 없습니다.")
                     break
         # 완료시 채널 초기화 상태 업데이트
         youtube_channel.update_initialized()
-        self.youtube_repo.update_channel(channel=youtube_channel)
+        await self.youtube_repo.update_channel(channel=youtube_channel)
+
+
+class APIKeyService:
+    def __init__(self, api_key_repo: APIKeyRepository):
+        self.api_key_repo = api_key_repo
+
+    async def list_api_keys(self) -> list[APIKey]:
+        """저장된 모든 API 키를 조회하는 메서드
+
+        Returns:
+            list[APIKey]: 저장된 API 키 목록
+        """
+        try:
+            api_keys = await self.api_key_repo.list_api_keys()
+            return api_keys
+        except Exception as e:
+            raise APIKeyServiceError(f"API 키 조회 중 오류 발생: {e}")
+
+    async def insert_api_key(self, api_key: str) -> None:
+        """API 키를 저장하는 메서드
+
+        Args:
+            api_key (str): 저장할 API 키
+        """
+
+        api_key_obj = APIKey(key=api_key)
+        try:
+            await self.api_key_repo.insert_api_key(api_key=api_key_obj)
+        except Exception as e:
+            raise APIKeyServiceError(f"API 키 저장 중 오류 발생: {e}")
+
+    async def update_quota_used(self, quota_used: int) -> None:
+        """API 키의 사용량을 업데이트하는 메서드
+
+        Args:
+            api_key (str): 업데이트할 API 키
+            quota_used (int): 사용량
+        """
+        try:
+            existing_key = await self.api_key_repo.get_api_key()
+            if not existing_key:
+                raise APIKeyServiceError("존재하지 않는 API 키입니다.")
+            # 만약 updated_at이 전날의 07시 이전이라면 quota_used를 초기화
+            if is_quota_reseted(existing_key.updated_at):
+                existing_key.quota_used = 0
+            existing_key.quota_used += quota_used
+            await self.api_key_repo.update_api_key(api_key=existing_key)
+        except Exception as e:
+            raise APIKeyServiceError(f"API 키 사용량 업데이트 중 오류 발생: {e}")
