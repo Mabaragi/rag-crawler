@@ -35,6 +35,10 @@ project-root/
 - dockerfile의 poetry 버전 맞추기
 - poetry에 있는 README.md 옮기기
 
+## DDD
+
+리포지토리는 단순히 CRUD(Create, Read, Update, Delete) 기능을 제공하는 것이 아니라, 도메인 계층이 필요로 하는 객체를 복원하는 계약을 정의합니다.
+
 ## Crawler
 
 전반적인 흐름
@@ -52,5 +56,3 @@ youtube api를 사용해 사용 특정 채널의 동영상을 전부 가져온�
 - initialized가 true일 경우에는 가장 먼저 같은 동영상을 만날경우 수집종료 (가장 최근 동영상만 수집)
 
 ### 크롤링 스케줄
-
-- 
