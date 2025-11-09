@@ -5,6 +5,48 @@ from domain.model.youtube import APIKey, YoutubeChannel, YoutubeVideoRawData
 
 class YoutubeRepository(ABC):
     @abstractmethod
+    async def get_channels(self) -> list[YoutubeChannel]:
+        """저장된 모든 채널 정보를 조회합니다.
+
+        Args:
+            filter (dict | None): 조회 필터 조건
+
+        Returns:
+            list[YoutubeChannel]: 저장된 채널 정보 리스트
+        """
+        pass
+
+    @abstractmethod
+    async def get_uninitialized_channels(self) -> list[YoutubeChannel]:
+        """초기화되지 않은 채널 정보를 조회합니다.
+
+        Returns:
+            list[YoutubeChannel]: 초기화되지 않은 채널 정보 리스트
+        """
+        pass
+
+    @abstractmethod
+    async def get_initialized_channels(self) -> list[YoutubeChannel]:
+        """초기화된 채널 정보를 조회합니다.
+
+        Returns:
+            list[YoutubeChannel]: 초기화된 채널 정보 리스트
+        """
+        pass
+
+    @abstractmethod
+    async def get_video_by_id(self, video_id: str) -> YoutubeVideoRawData | None:
+        """비디오 ID로 원시 비디오 데이터를 조회합니다.
+
+        Args:
+            video_id (str): 비디오 ID
+
+        Returns:
+            YoutubeVideoRawData | None: 원시 비디오 데이터 또는 None
+        """
+        pass
+
+    @abstractmethod
     async def save_channel(self, channel: YoutubeChannel) -> None:
         """채널 정보를 저장합니다.
 
@@ -45,6 +87,15 @@ class YoutubeRepository(ABC):
         """
         pass
 
+    @abstractmethod
+    async def clear_raw_data_for_channel(self, channel: YoutubeChannel) -> None:
+        """특정 채널의 원시 데이터를 삭제합니다.
+
+        Args:
+            channel (YoutubeChannel): 대상 채널 정보
+        """
+        pass
+
 
 class APIKeyRepository(ABC):
     @abstractmethod
@@ -57,7 +108,7 @@ class APIKeyRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_api_key(self) -> APIKey | None:
+    async def get_api_key(self) -> APIKey:
         """API 키를 조회합니다.
 
         Returns:
