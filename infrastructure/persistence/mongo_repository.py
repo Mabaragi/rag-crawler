@@ -3,6 +3,8 @@ import datetime
 # from pymongo import AsyncMongoClient
 from pymongo.errors import PyMongoError
 
+from audit.loggers.log_repository import LogRepository
+from audit.loggers.youtube_logger import YoutubeLogEntry
 from domain.model.youtube import APIKey, YoutubeChannel, YoutubeVideoRawData
 from domain.repository.youtube_repository import APIKeyRepository, YoutubeRepository
 from infrastructure.persistence.client import get_mongo_db
@@ -18,6 +20,36 @@ class MongoYoutubeRepository(YoutubeRepository):
         # 환경 변수나 기본값으로 클라이언트 초기화
         # 데이터베이스는 생성자에서 전달받은 이름으로 설정
         self._db = get_mongo_db(db_name)
+
+    async def _get_channels(self, filter: dict | None = None) -> list[YoutubeChannel]:
+        try:
+            if filter is None:
+                filter = {}
+            cursor = self._db["channels"].find(filter)
+            channels = []
+            async for document in cursor:
+                channels.append(YoutubeChannel.from_dict(document))
+            return channels
+        except PyMongoError as e:
+            raise e
+
+    async def get_channels(self) -> list[YoutubeChannel]:
+        return await self._get_channels()
+
+    async def get_initialized_channels(self) -> list[YoutubeChannel]:
+        return await self._get_channels(filter={"initialized": True})
+
+    async def get_uninitialized_channels(self) -> list[YoutubeChannel]:
+        return await self._get_channels(filter={"initialized": False})
+
+    async def get_video_by_id(self, video_id: str) -> YoutubeVideoRawData | None:
+        try:
+            data = await self._db["raw_data"].find_one(filter={"video_id": video_id})
+            if data:
+                return YoutubeVideoRawData.from_dict(data)
+            return None
+        except PyMongoError as e:
+            raise e
 
     async def save_channel(self, channel: YoutubeChannel) -> None:
         try:
@@ -63,6 +95,12 @@ class MongoYoutubeRepository(YoutubeRepository):
         except PyMongoError as e:
             raise e
 
+    async def clear_raw_data_for_channel(self, channel: YoutubeChannel) -> None:
+        try:
+            await self._db["raw_data"].delete_many({"channel_id": channel.channel_id})
+        except PyMongoError as e:
+            raise e
+
     async def check_saved(self, raw_data: YoutubeVideoRawData) -> bool | None:
         """
         원시 데이터의 저장 여부를 확인합니다.
@@ -79,7 +117,7 @@ class MongoAPIKeyRepository(APIKeyRepository):
     def __init__(self, db_name: str = "youtube_db"):
         self._db = get_mongo_db(db_name)
 
-    async def list_api_keys(self) -> list[APIKey] | None:
+    async def list_api_keys(self) -> list[APIKey]:
         try:
             cursor = self._db["api_keys"].find({})
             api_keys = []
@@ -89,12 +127,13 @@ class MongoAPIKeyRepository(APIKeyRepository):
         except PyMongoError as e:
             raise e
 
-    async def get_api_key(self) -> str:
+    async def get_api_key(self) -> APIKey:
         try:
             data = await self._db["api_keys"].find_one(filter={"service": "youtube"})
             if data:
-                return data["api_key"]
-            return ""
+                return APIKey.from_dict(data)
+            else:
+                raise ValueError("No API key found for YouTube service")
         except PyMongoError as e:
             raise e
 
@@ -118,3 +157,20 @@ class MongoAPIKeyRepository(APIKeyRepository):
             )
         except PyMongoError as e:
             raise e
+
+
+class MongoLogRepository(LogRepository):
+    def __init__(self, db_name: str = "log_db"):
+        self._db = get_mongo_db(db_name)
+
+    async def _save_log(self, log: YoutubeLogEntry, collection_name: str) -> None:
+        try:
+            await self._db[collection_name].insert_one(log.to_dict())
+        except PyMongoError as e:
+            raise e
+
+    async def save_channel_log(self, log: YoutubeLogEntry) -> None:
+        await self._save_log(log, "channel_crawl_logs")
+
+    async def save_video_raw_data_log(self, log: YoutubeLogEntry) -> None:
+        await self._save_log(log, "video_raw_data_logs")
