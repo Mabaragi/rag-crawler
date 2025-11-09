@@ -2,25 +2,35 @@ from fastapi import APIRouter, Depends, Form
 from typing_extensions import Annotated
 
 from application.schemas.youtube import ChannelInsertRequest
-from application.services.youtube_service import APIKeyService, ChannelInsertService
+from application.services.youtube_service import (
+    APIKeyService,
+    ChannelCreateService,
+    ChannelReadService,
+    RawDataCrawlService,
+)
 
 from .dependencies import (
     get_api_key_service,
-    get_channel_insert_service,
+    get_channel_create_service,
+    get_channel_read_service,
+    get_raw_data_crawl_service,
 )
 
 router = APIRouter(prefix="/youtube", tags=["youtube"])
 
 
-@router.get("/health")
-async def health_check():
-    return {"status": "YouTube router is healthy"}
+@router.get("/channels/")
+async def list_channels(
+    service: ChannelReadService = Depends(get_channel_read_service),
+):
+    channels = await service.list_channels()
+    return {"channels": [channel.to_dict() for channel in channels]}
 
 
 @router.post("/insert_channel/")
 async def insert_channel(
     request: Annotated[ChannelInsertRequest, Form()],
-    service: ChannelInsertService = Depends(get_channel_insert_service),
+    service: ChannelCreateService = Depends(get_channel_create_service),
 ):
     await service.insert_channel(
         channel_name=request.channel_name,
@@ -30,12 +40,36 @@ async def insert_channel(
     return {"status": "Channel insertion initiated"}
 
 
-@router.get("/api_keys/")
-async def list_api_keys(
+@router.post("/videos/raw_data/initialize/")
+async def initialize_raw_data(
+    service: RawDataCrawlService = Depends(get_raw_data_crawl_service),
+):
+    await service.initialize_you_tube_video_data()
+    return {"status": "Raw data crawling initiated"}
+
+
+@router.post("/videos/raw_data/fetch/")
+async def fetch_raw_data(
+    service: RawDataCrawlService = Depends(get_raw_data_crawl_service),
+):
+    await service.fetch_videos_from_initialized_channels()
+    return {"status": "Raw data fetched"}
+
+
+# @router.get("/api_keys/")
+# async def list_api_keys(
+#     service: APIKeyService = Depends(get_api_key_service),
+# ):
+#     api_keys = await service.list_api_keys()
+#     return {"api_keys": [api_key.to_dict() for api_key in api_keys]}
+
+
+@router.get("/api_key/")
+async def get_api_key(
     service: APIKeyService = Depends(get_api_key_service),
 ):
-    api_keys = await service.list_api_keys()
-    return {"api_keys": [api_key.to_dict() for api_key in api_keys]}
+    api_key = await service.get_api_key()
+    return {"api_key": api_key.to_dict()}
 
 
 @router.post("/insert_api_key/")
