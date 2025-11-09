@@ -77,7 +77,7 @@ def run_video_rawdata_crawl_command() -> None:
             youtube_repo=mongo_repo,
             api_client=api_client,
         )
-        raw_data_crawl_service.crawl_and_save_raw_data(youtube_channel=youtube_channel)
+        raw_data_crawl_service.initialize_you_tube_video_data(youtube_channel=youtube_channel)
 
 
 # --- 4. CLI 진입점 ---
