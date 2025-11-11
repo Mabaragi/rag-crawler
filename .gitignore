@@ -57,3 +57,5 @@ node_modules/
 
 # github copilot settings
 .github
+
+setup_server.sh

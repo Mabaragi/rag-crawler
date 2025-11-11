@@ -60,7 +60,9 @@ services:
       MONGO_URI: 'mongodb://root:password@mongo:27017/?authSource=admin'
       QDRANT_URL: 'http://qdrant:6333'
     ports:
-      - '8000:8000' # FastAPI 기본 포트 매핑
+      - '8002:8002' # FastAPI 기본 포트 매핑
+    command:
+      ['uvicorn', 'application.main:app', '--host', '0.0.0.0', '--port', '8002']
     volumes:
       - ./:/app # 로컬 소스 코드 마운트 (개발 편의)
       - poetry_cache:/root/.cache/pypoetry # Poetry 캐시 공유로 빌드 가속

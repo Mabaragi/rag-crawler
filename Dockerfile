@@ -41,4 +41,3 @@ RUN poetry install --no-ansi --no-interaction --only main --no-root
 COPY . .
 
 # Default command is overridden by docker-compose; keep a sane default here
-CMD ["uvicorn", "--reload", "application.main:app", "--host", "0.0.0.0", "--port", "8000"]
