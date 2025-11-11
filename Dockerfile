@@ -38,6 +38,6 @@ COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --no-ansi --no-interaction --only main --no-root
 
 # Now copy the rest of the application
-COPY . .
+COPY src/ ./src/
 
 # Default command is overridden by docker-compose; keep a sane default here

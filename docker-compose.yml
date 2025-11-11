@@ -62,7 +62,14 @@ services:
     ports:
       - '8002:8002' # FastAPI 기본 포트 매핑
     command:
-      ['uvicorn', 'application.main:app', '--host', '0.0.0.0', '--port', '8002']
+      [
+        'uvicorn',
+        'src.application.main:app',
+        '--host',
+        '0.0.0.0',
+        '--port',
+        '8002',
+      ]
     volumes:
       - ./:/app # 로컬 소스 코드 마운트 (개발 편의)
       - poetry_cache:/root/.cache/pypoetry # Poetry 캐시 공유로 빌드 가속
