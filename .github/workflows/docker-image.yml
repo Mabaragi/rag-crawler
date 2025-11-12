@@ -34,3 +34,4 @@ jobs:
           IMAGE_URI=211125694283.dkr.ecr.ap-northeast-2.amazonaws.com/rag-crawler-app
           docker build -t $IMAGE_URI .
           docker push $IMAGE_URI
+
