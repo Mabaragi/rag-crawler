@@ -4,11 +4,24 @@ on:
   push:
     branches: ['main']
 
+permissions:
+  id-token: write # OIDC 토큰을 발급받기 위한 권한
+  contents: read # 레포지토리 콘텐츠에 대한 읽기 권한
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::2111-2569-4283:role/GitHubActionsDeployRole
+          aws-region: ap-northeast-2
+
+      - name: Verify AWS access
+        run: aws sts get-caller-identity
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -21,13 +34,11 @@ jobs:
           docker build -t mabaragi/rag-crawler-app:latest .
           docker push mabaragi/rag-crawler-app:latest
 
-      - name: SSH into EC2 and deploy
-        uses: appleboy/ssh-action@v1.1.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /srv
-            docker compose pull
-            docker compose up -d
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Deploy to EC2
+        run: |
+          cd /srv
+          docker compose pull
+          docker compose up -d
