@@ -16,7 +16,7 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::211125694283:role/GitHubActionsDeployRole
+          role-to-assume: arn:aws:iam::2111-2569-4283:role/GitHubActionsDeployRole
           aws-region: ap-northeast-2
 
       - name: Verify AWS access
@@ -25,20 +25,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
-
-      - name: Build and Push Docker image
-        run: |
-          docker build -t mabaragi/rag-crawler-app:latest .
-          docker push mabaragi/rag-crawler-app:latest
-
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Deploy to EC2
+      - name: 🔨 Build, Tag, and Push Docker Image
+        id: build-image
         run: |
-          cd /srv
-          docker compose pull
-          docker compose up -d
+          IMAGE_URI=211125694283.dkr.ecr.ap-northeast-2.amazonaws.com/rag-crawler-app
+          docker build -t $IMAGE_URI .
+          docker push $IMAGE_URI
