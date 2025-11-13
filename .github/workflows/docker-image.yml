@@ -38,7 +38,7 @@ jobs:
       - name: 🚀 Deploy to EC2 via SSM
         run: |
           aws ssm send-command \
-            --instance-ids ""i-0a3fbeae777bc73c3" \
+            --instance-ids "i-0a3fbeae777bc73c3" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy rag-crawler-app" \
-            --parameters '{"commands":["cd /home/ubuntu/srv && aws ecr get-login-password --region ap-northeast-2 | docker login --use AWS --password-stdin 211125694283.dkr.ecr.ap-northeast-2.amazonaws.com &&  docker compose pull && docker compose up -d"]}'
+            --parameters '{"commands":["cd /home/ubuntu/srv && aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 211125694283.dkr.ecr.ap-northeast-2.amazonaws.com && docker compose pull && docker compose up -d"]}'
