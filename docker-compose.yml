@@ -28,7 +28,7 @@ services:
     image: mongo-express:latest # Mongo Express 최신 버전
     container_name: mongo_express_container
     ports:
-      - '8081:8081' # [내 PC 포트]:[컨테이너 포트] (8081로 접속)
+      - '8082:8081' # [내 PC 포트]:[컨테이너 포트] (8081로 접속)
     environment:
       ME_CONFIG_MONGODB_SERVER: mongo # ⬅️ 연결할 몽고DB (서비스 이름 'mongo'를 사용)
       ME_CONFIG_MONGODB_ADMINUSERNAME: root # ⬅️ 1번 mongo의 관리자 ID와 일치
@@ -53,8 +53,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: rag_python_app
-    env_file:
-      - .env
+    env_file: .env
+    working_dir: /app/src
     environment:
       # 컨테이너 내부에서 사용할 기본 연결 URL (필요 시 .env 에서 오버라이드)
       MONGO_URI: 'mongodb://root:password@mongo:27017/?authSource=admin'
@@ -62,14 +62,7 @@ services:
     ports:
       - '8002:8002' # FastAPI 기본 포트 매핑
     command:
-      [
-        'uvicorn',
-        'src.application.main:app',
-        '--host',
-        '0.0.0.0',
-        '--port',
-        '8002',
-      ]
+      ['uvicorn', 'application.main:app', '--host', '0.0.0.0', '--port', '8002']
     volumes:
       - ./:/app # 로컬 소스 코드 마운트 (개발 편의)
       - poetry_cache:/root/.cache/pypoetry # Poetry 캐시 공유로 빌드 가속
