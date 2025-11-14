@@ -1,10 +1,11 @@
 import datetime
 
-# from pymongo import AsyncMongoClient
 from pymongo.errors import PyMongoError
 
+# from pymongo import AsyncMongoClient
 from audit.loggers.log_repository import LogRepository
 from audit.loggers.youtube_logger import YoutubeLogEntry
+from domain.exceptions.youtube import ChannelIdDuplicateError
 from domain.model.youtube import APIKey, YoutubeChannel, YoutubeVideoRawData
 from domain.repository.youtube_repository import APIKeyRepository, YoutubeRepository
 from infrastructure.persistence.client import get_mongo_db
@@ -55,13 +56,11 @@ class MongoYoutubeRepository(YoutubeRepository):
         try:
             youtube_channel_data = channel.to_dict()
             youtube_channel_data["created_at"] = datetime.datetime.now(datetime.timezone.utc)
-
-            await self._db["channels"].update_one(
-                filter={"channel_id": channel.channel_id},
-                update={"$set": youtube_channel_data},
-                upsert=True,
-            )
-        except PyMongoError as e:
+            channel_exists = await self._db["channels"].find_one(filter={"channel_id": channel.channel_id})
+            if channel_exists:
+                raise ChannelIdDuplicateError(f"Channel ID {channel.channel_id} already exists.")
+            await self._db["channels"].insert_one(youtube_channel_data)
+        except Exception as e:
             raise e
 
     async def update_channel(self, channel: YoutubeChannel) -> None:
@@ -69,12 +68,7 @@ class MongoYoutubeRepository(YoutubeRepository):
             await self._db["channels"].update_one(
                 filter={"channel_id": channel.channel_id},
                 update={
-                    "$set": {
-                        "channel_name": channel.channel_name,
-                        "channel_handle": channel.channel_handle,
-                        "streamer_name": channel.streamer_name,
-                        "initialized": channel.initialized,
-                    }
+                    "$set": channel.to_dict(),
                 },
             )
         except PyMongoError as e:
