@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, Form, HTTPException
 from typing_extensions import Annotated
 
-from application.schemas.youtube import ChannelInsertRequest
+from application.schemas.youtube_schema import ChannelInsertRequest, ChannelInsertResponse, ChannelListResponse
 from application.services.youtube_service import (
     APIKeyService,
     ChannelCreateService,
@@ -19,25 +19,28 @@ from .dependencies import (
 router = APIRouter(prefix="/youtube", tags=["youtube"])
 
 
-@router.get("/channels/")
+@router.get("/channels/", response_model=list[ChannelListResponse])
 async def list_channels(
     service: ChannelReadService = Depends(get_channel_read_service),
 ):
     channels = await service.list_channels()
-    return {"channels": [channel.to_dict() for channel in channels]}
+    return channels
 
 
-@router.post("/insert_channel/")
+@router.post("/channels/insert/")
 async def insert_channel(
     request: Annotated[ChannelInsertRequest, Form()],
     service: ChannelCreateService = Depends(get_channel_create_service),
 ):
-    await service.insert_channel(
-        channel_name=request.channel_name,
-        channel_handle=request.channel_handle,
-        streamer_name=request.streamer_name,
-    )
-    return {"status": "Channel insertion initiated"}
+    try:
+        channel = await service.insert_channel(
+            channel_name=request.channel_name,
+            channel_handle=request.channel_handle,
+            streamer_name=request.streamer_name,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return ChannelInsertResponse(data=channel.to_dict())
 
 
 @router.post("/videos/raw_data/initialize/")
