@@ -1,7 +1,7 @@
 import datetime
 import os
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import asdict, dataclass, field
+from typing import Any, Literal
 
 import dotenv
 
@@ -12,22 +12,36 @@ YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
 
 @dataclass
+class ChannelCrawlSchedule:
+    status: Literal["in_progress", "completed", "failed", "waiting", "stopped"] = "waiting"
+    interval_date: int = 2
+    created_at: datetime.datetime = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at: datetime.datetime = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+
+@dataclass
 class YoutubeChannel:
     channel_name: str
     channel_handle: str
     channel_id: str
     streamer_name: str
+    schedule: ChannelCrawlSchedule = field(default_factory=ChannelCrawlSchedule)
     initialized: bool = field(default=False)
     created_at: datetime.datetime = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at: datetime.datetime = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     @staticmethod
     def from_dict(data: dict) -> "YoutubeChannel":
         return data_class_from_dict(YoutubeChannel, data)
 
     def to_dict(self) -> dict[str, Any]:
-        return self.__dict__
+        return asdict(self)
+
+    def _update_updated_at(self) -> None:
+        self.updated_at = datetime.datetime.now(datetime.timezone.utc)
 
     def update_initialized(self) -> None:
+        self._update_updated_at()
         self.initialized = True
 
 
