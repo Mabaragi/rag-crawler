@@ -1,10 +1,10 @@
 # application/services/crawl_service.py (응용 서비스 계층)
 import datetime
 
-from application.exceptions import APIKeyServiceError, YoutubeAPIRequestError
 from audit.loggers.log_repository import LogRepository
 from audit.loggers.youtube_logger import YoutubeLogEntry
 from domain.adapter.youtube_api_adapter import YoutubeApiAdapter
+from domain.exceptions.youtube import APIKeyServiceError, YoutubeAPIRequestError
 from domain.model.youtube import APIKey, YoutubeChannel, YoutubeVideoRawData
 from domain.repository.youtube_repository import (
     APIKeyRepository,
@@ -37,9 +37,19 @@ class ChannelCreateService:
         self.api_key_repo = api_key_repo
         self.api_client = api_client
 
-    async def insert_channel(self, channel_name: str, channel_handle: str, streamer_name: str) -> None:
-        """
-        채널 정보를 크롤링하고 저장하는 메서드
+    async def insert_channel(self, channel_name: str, channel_handle: str, streamer_name: str) -> YoutubeChannel:
+        """채널을 삽입하는 메서드
+
+        Args:
+            channel_name (str): 유튜브 채널 이름
+            channel_handle (str): 유튜브 채널 핸들
+            streamer_name (str): 스트리머 이름
+
+        Raises:
+            ValueError: 채널 ID를 가져올 수 없는 경우
+
+        Returns:
+            YoutubeChannel: 생성된 유튜브 채널 객체
         """
         api_key = await self.api_key_repo.get_api_key()
         channel_id = await self.api_client.fetch_channel_id(channel_handle, api_key.api_key)
@@ -54,6 +64,41 @@ class ChannelCreateService:
         )
         # 2. 로직 수행 및 저장 요청 (인터페이스 메서드 사용)
         await self.channel_repo.save_channel(channel=channel)
+        return channel
+
+
+class ChannelUpdateService:
+    def __init__(self, channel_repo: YoutubeRepository):
+        self.channel_repo = channel_repo
+
+    async def update_channel(self, channel: YoutubeChannel) -> YoutubeChannel:
+        """채널 정보를 업데이트하는 메서드
+
+        Args:
+            channel (YoutubeChannel): 업데이트할 채널 정보
+        """
+        await self.channel_repo.update_channel(channel=channel)
+        return channel
+
+    async def bulk_update_channels(self, **kwargs) -> list[YoutubeChannel]:
+        """여러 채널 정보를 일괄 업데이트하는 메서드
+
+        Args:
+            channels (list[YoutubeChannel]): 업데이트할 채널 정보 리스트
+        """
+        channels = await self.channel_repo.get_channels()
+        channel_dicts = []
+        for channel in channels:
+            channel._update_updated_at()
+            channel_dict = channel.to_dict()
+            for key, value in kwargs.items():
+                if key in channel_dict:
+                    setattr(channel, key, value)
+            channel_dicts.append(channel_dict)
+        new_channels = [YoutubeChannel(**channel_dict) for channel_dict in channel_dicts]
+        for channel in new_channels:
+            await self.channel_repo.update_channel(channel=channel)
+        return new_channels
 
 
 class RawDataCrawlService:
